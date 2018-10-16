@@ -54,10 +54,21 @@ public class Lexer {
 		/* 状態遷移表を作る */
 		/*   delta[現状態][入力記号] */
 
-		/*  P  X  0  1  A  OTHER */
-		/*{ ?, ?, ?, ?, ?, ?}, /* 状態0 */
-		/*{ ?, ?, ?, ?, ?, ?}, /* 状態1 */
-		/*...*/
+	    /*  P   X   0   1   A   OTHER */
+	    {   4,  3,  2,  1,  1,  3 },   /* 0 _初期状態 */
+	    {   4, 10,  1,  1,  1, 10 },   /* 1 _10進数  */
+	    {   6,  5,  2,  8,  1, 10 },   /* 2 _初期値0 */
+	    {   3,  3,  3,  3,  3,  3 },   /* 3 _ERROR  */
+	    {   3,  3,  7,  7,  3,  3 },   /* 4 _初期値小数点 */
+	    {  10, 10, 12, 12, 12, 10 },  /* 5 _16進数 */
+	    {  10, 10, 11, 11, 10, 10 },  /* 6 _   */
+	    {   9,  9,  7,  7,  9,  9 },  /* 7 _　 */
+	    {  10, 10,  8,  8,  1, 10 },  /* 8 _   */
+	    {   9,  9,  9,  9,  9,  9 },  /* 9 _実数状態 */
+	    {  10, 10, 10, 10, 10, 10 },  /*10 _10進数状態 */
+	    {   9,  9, 11, 11,  9,  9 },   /*11  */
+	    {  10, 10, 12, 12, 12, 10 }   /*12  */ 
+	    
 	};
 
 	/*
@@ -84,7 +95,50 @@ public class Lexer {
 			/* TODO */
 			/* 行先がなければループを抜ける */
 			/* 行先が受理状態であれば「最後の受理状態」を更新する */
+			
+			if(nextState == 3){ /* ERRの受理状態 */
+			    acceptMarker= Token.TYPE_ERR;
+			    acceptPos = start;
+			    break;
+			    
+			}else if(nextState == 9){ /* 小数の受理状態 */
+			    acceptMarker = Token.TYPE_DEC;
+			    break;
+			    
+			}else if(nextState == 10){ /* 整数の受理状態 */
+			    acceptMarker = Token.TYPE_INT;
+			    if(currentState == 5) {
+				acceptPos = 1;
+			    }
+			    break;
+			    
+			}else if (nextState == 1 || nextState == 2 || nextState == 6) { /* 整数の受理状態(行き先なし終了) */
+			    acceptMarker = Token.TYPE_INT;
+			    acceptPos++;
 
+			}else if (nextState == 7 || nextState == 11) { /* 小数の受理状態(行き先なし終了) */
+			    acceptMarker = Token.TYPE_DEC;
+			    acceptPos++;
+			    
+			}else if (nextState == 5){ /* 0xスタート */
+			    acceptMarker = Token.TYPE_INT;
+			    acceptPos++;
+			    if(str.length() == 2) { /* 0xのみの状態 */
+				acceptPos--;
+			    }	
+			    
+			}else if (nextState == 8){ /* 0スタート */
+			    acceptPos++;
+			    if(currentState == 8 && (str.length() ==  acceptPos)) { /* 0の後は全て数字の状態 */
+				acceptPos = 1;
+			    }
+    
+			}else if (nextState == 4 && str.length() == 1) { /* 小数点のみの状態 */
+			    acceptMarker= Token.TYPE_ERR;
+			
+			}else{
+			    acceptPos++;
+			}
 			currentState = nextState;
 		}
 		
